@@ -1,0 +1,130 @@
+import pygame
+import random
+
+# 게임 화면 크기
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 400
+
+# 패들 크기
+PADDLE_WIDTH = 10
+PADDLE_HEIGHT = 60
+PADDLE_SPEED = 5
+
+# 공 크기
+BALL_RADIUS = 10
+BALL_SPEED_X = 5
+BALL_SPEED_Y = 5
+
+# 색상
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# 초기화
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("1인용 핑퐁 게임_김세찬")
+
+clock = pygame.time.Clock()
+
+# 폰트 설정
+font = pygame.font.Font(None, 36)
+
+# 패들 객체 생성
+paddle = pygame.Rect(0, SCREEN_HEIGHT // 2 - PADDLE_HEIGHT // 2, PADDLE_WIDTH, PADDLE_HEIGHT)
+
+# 공 객체 생성
+ball = pygame.Rect(SCREEN_WIDTH // 2 - BALL_RADIUS, SCREEN_HEIGHT // 2 - BALL_RADIUS, BALL_RADIUS * 2, BALL_RADIUS * 2)
+ball_speed_x = random.choice([-1, 1]) * BALL_SPEED_X
+ball_speed_y = random.choice([-1, 1]) * BALL_SPEED_Y
+
+# 스코어
+score = 0
+
+# 목숨
+lives = 10
+
+# 게임 오버 여부
+game_over = False
+
+# 게임 오버 시간
+game_over_time = None
+
+# 게임 루프
+while not game_over:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            game_over = True
+
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_UP]:
+        paddle.y -= PADDLE_SPEED
+    if keys[pygame.K_DOWN]:
+        paddle.y += PADDLE_SPEED
+
+    # 패들 이동 범위 제한
+    if paddle.y < 0:
+        paddle.y = 0
+    if paddle.y > SCREEN_HEIGHT - PADDLE_HEIGHT:
+        paddle.y = SCREEN_HEIGHT - PADDLE_HEIGHT
+
+    # 공 이동
+    ball.x += ball_speed_x
+    ball.y += ball_speed_y
+
+    # 벽과 공 충돌 처리
+    if ball.y < 0 or ball.y > SCREEN_HEIGHT - BALL_RADIUS * 2:
+        ball_speed_y *= -1
+    if ball.x < 0:
+        lives -= 1
+        if lives == 0:
+            game_over = True
+            game_over_time = pygame.time.get_ticks()
+        else:
+            ball.x = SCREEN_WIDTH // 2 - BALL_RADIUS
+            ball.y = SCREEN_HEIGHT // 2 - BALL_RADIUS
+            ball_speed_x = random.choice([-1, 1]) * BALL_SPEED_X
+            ball_speed_y = random.choice([-1, 1]) * BALL_SPEED_Y
+            # 목숨이 줄어들 때마다 공의 속도 1.2배 증가
+            ball_speed_x *= 1.2
+            ball_speed_y *= 1.2
+    if ball.x > SCREEN_WIDTH - BALL_RADIUS * 1.2:
+        ball_speed_x *= -1
+        score += 1
+
+    # 패들과 공 충돌 처리
+    if ball.colliderect(paddle):
+        ball_speed_x *= -1
+
+    # 화면 지우기
+    screen.fill(BLACK)
+
+    # 패들 그리기
+    pygame.draw.rect(screen, WHITE, paddle)
+
+    # 공 그리기
+    pygame.draw.circle(screen, WHITE, (ball.x + BALL_RADIUS, ball.y + BALL_RADIUS), BALL_RADIUS)
+
+    # 스코어 표시
+    score_text = font.render("Score: " + str(score), True, WHITE)
+    screen.blit(score_text, (10, 10))
+
+    # 목숨 표시
+    lives_text = font.render("Lives: " + str(lives), True, WHITE)
+    screen.blit(lives_text, (SCREEN_WIDTH - lives_text.get_width() - 10, 10))
+
+    # 게임 오버 처리
+    if game_over:
+        if game_over_time is not None and pygame.time.get_ticks() - game_over_time >= 3000:  # 3초(3000ms)간 게임 오버 화면 유지
+            break
+        game_over_text = font.render("Game Over", True, WHITE)
+        game_over_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        screen.blit(game_over_text, game_over_rect)
+
+    # 화면 업데이트
+    pygame.display.flip()
+
+    # FPS 설정
+    clock.tick(60)
+
+# 게임 종료
+pygame.quit()
